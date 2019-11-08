@@ -16,7 +16,7 @@ class composite_hail_workflow(object):
     def generate_dax(self):
         "Generate a composite workflow"
         ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
-        dax = ADAG("composite_hail_wf-%s" % ts)
+        dax = ADAG("casa_hail_composite_wf-%s" % ts)
         dax.metadata("name", "CASA Composite Hail")
 
         cart_inputs = []

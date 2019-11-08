@@ -23,7 +23,7 @@ pegasus-plan --conf $PROPERTIESFILE \
     --output-site local \
     --cleanup leaf \
     --cluster label \
-    --force #\
-#    --submit
+    --force \
+    --submit
     #--cluster horizontal \
     #--cluster label \
