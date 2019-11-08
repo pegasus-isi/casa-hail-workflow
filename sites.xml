@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitecatalog xmlns="http://pegasus.isi.edu/schema/sitecatalog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pegasus.isi.edu/schema/sitecatalog http://pegasus.isi.edu/schema/sc-4.1.xsd" version="4.1">
+
+   <!-- The local site contains information about the submit host -->
+   <site handle="local" arch="x86_64" os="LINUX">
+      <!-- This is where intermediate data will be stored -->
+      <directory type="shared-scratch" path="${PWD}/scratch">
+         <file-server operation="all" url="file://${PWD}/scratch"/>
+      </directory>
+      <!-- This is where output data will be stored -->
+      <directory type="shared-storage" path="${PWD}/output">
+         <file-server operation="all" url="file://${PWD}/output"/>
+      </directory>
+      <profile namespace="env" key="PATH">/home/ldm/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/ldm/.local/bin:/home/ldm/bin</profile>
+   </site>
+
+   <site handle="condorpool" arch="x86_64" os="LINUX">
+      <!-- These profiles tell Pegasus that the site is a plain Condor pool -->
+      <profile namespace="pegasus" key="style">condor</profile>
+      <profile namespace="pegasus" key="data.configuration">condorio</profile>
+      <profile namespace="condor" key="universe">vanilla</profile>
+      <!--profile namespace="pegasus" key="clusters.size">1</profile> -->
+      <!--<profile namespace="pegasus" key="cores">1</profile> -->
+      <!--profile namespace="pegasus" key="memory">2048</profile> -->
+      <profile namespace="env" key="PATH">/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin</profile>
+   </site>
+   
+   <site handle="condorpool_nfs" arch="x86_64" os="LINUX">
+      <!-- These profiles tell Pegasus that the site is a plain Condor pool -->
+      <directory type="shared-scratch"  path="/nfs/shared/ldm/scratch/hail">
+         <file-server operation="all"   url="scp://ldm@exogeni_storage/nfs/shared/ldm/scratch/hail"/>
+      </directory>
+      <!--directory type="shared-scratch"  path="/nfs/shared/ldm/scratch/hail">
+         <file-server operation="all"   url="scp://ldm@chameleon_storage/nfs/shared/ldm/scratch/hail"/>
+      </directory-->
+
+
+      <profile namespace="pegasus" key="style">condor</profile>
+      <profile namespace="pegasus" key="data.configuration">nonsharedfs</profile>
+      <profile namespace="condor" key="universe">vanilla</profile>
+      <profile namespace="pegasus" key="clusters.size">1</profile>
+      <profile namespace="pegasus" key="cores">4</profile>
+      <profile namespace="pegasus" key="memory">2048</profile>
+
+      <profile namespace="pegasus" key="SSH_PRIVATE_KEY">/home/ldm/.ssh/storage_rsa</profile>
+      <profile namespace="env" key="PATH">/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin</profile>
+   </site>
+</sitecatalog>
+
