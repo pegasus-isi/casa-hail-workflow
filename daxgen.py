@@ -4,6 +4,7 @@ import sys
 import os
 import pwd
 import time
+import shutil
 from Pegasus.DAX3 import *
 from datetime import datetime
 from argparse import ArgumentParser
@@ -20,31 +21,44 @@ def get_radar_config(radname):
     return radarassoc
 
 class single_hail_workflow(object):
-    def __init__(self, outdir, nc_fn):
+    def __init__(self, outdir, nc_fn, default_properties, default_replica):
         self.outdir = outdir
         self.nc_fn = nc_fn
+        self.default_replica = default_replica
+        self.default_properties = default_properties
+        self.replica = {}
+
 
     def generate_dax(self):
         "Generate a workflow"
         ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
         dax = ADAG("casa_hail_wf-%s" % ts)
         dax.metadata("name", "CASA Hail")
+        USER = pwd.getpwuid(os.getuid())[0]
+        dax.metadata("creator", "%s@%s" % (USER, os.uname()[1]))
+        dax.metadata("created", time.ctime())
 
-        for f in self.nc_fn:
-            f = f.split("/")[-1]
-            if f.endswith(".gz"):
-                radarfilename = f[:-3]
+        for pfn in self.nc_fn:
+            if pfn.startswith("/") or pfn.startswith("file://"):
+                site = "local"
+            else:
+                site = pfn.split("/")[2]
+            lfn = pfn.split("/")[-1]
+            self.replica[lfn] = {"site": site, "pfn": pfn}
+
+            if lfn.endswith(".gz"):
+                radarfilename = lfn[:-3]
                 unzip = Job("gunzip")
-                unzip.addArguments(f)
-                zipfile = File(f)
+                unzip.addArguments(lfn)
+                zipfile = File(lfn)
                 unzip.uses(zipfile, link=Link.INPUT)
                 unzip.uses(radarfilename, link=Link.OUTPUT, transfer=False, register=False)
                 dax.addJob(unzip)
             else:
-                radarfilename = f;
+                radarfilename = lfn;
 
-            string_end = self.nc_fn[-1].find("-")
-            file_time = self.nc_fn[-1][string_end+1:string_end+16]
+            string_end = lfn.find("-")
+            file_time = lfn[string_end+1:string_end+16]
             file_ymd = file_time[0:8]
             file_hms = file_time[9:15]
             
@@ -52,7 +66,7 @@ class single_hail_workflow(object):
             #print file_hms
                 
             radarfile = File(radarfilename)
-            radarloc = self.nc_fn[-1][0:string_end]
+            radarloc = lfn[0:string_end]
 
             radarconfigfilename = get_radar_config(radarloc)
             radarconfigfile = File(radarconfigfilename)
@@ -131,9 +145,23 @@ class single_hail_workflow(object):
 		dax.addJob(netcdf2png_job)
                 
         # Write the DAX file
-        daxfile = os.path.join(self.outdir, dax.name+".dax")
-        dax.writeXMLFile(daxfile)
-        print daxfile
+        dax_file = os.path.join(self.outdir, dax.name+".dax")
+        dax.writeXMLFile(dax_file)
+        
+        # Write replica catalog
+        replica_file =  os.path.join(self.outdir, dax.name+".rc.txt")
+        shutil.copy(self.default_replica, replica_file)
+        with open(replica_file, 'a') as g:
+            for lfn in self.replica:
+                g.write("{0}    {1}    site=\"{2}\"\n".format(lfn, self.replica[lfn]["pfn"], self.replica[lfn]["site"]))
+
+        # Write properties file
+        properties_file =  os.path.join(self.outdir, dax.name+".properties")
+        shutil.copy(self.default_properties, properties_file)
+        with open(properties_file, 'a') as g:
+            g.write("pegasus.catalog.replica.file={0}\n".format(replica_file))
+
+        print "{0} {1}".format(dax_file,properties_file)
 
     def generate_workflow(self):
         # Generate dax
@@ -142,6 +170,8 @@ class single_hail_workflow(object):
 if __name__ == '__main__':
     parser = ArgumentParser(description="Single Hail Workflow")
     parser.add_argument("-f", "--files", metavar="INPUT_FILE", type=str, nargs="+", help="Filename", required=True)
+    parser.add_argument("-r", "--replica", metavar="DEFAULT_REPLICA", type=str, help="Default Replica Catalog", required=True)
+    parser.add_argument("-p", "--properties", metavar="DEFAULT_PROPERTIES", type=str, help="Default Pegasus Properties", required=True)
     parser.add_argument("-o", "--outdir", metavar="OUTPUT_LOCATION", type=str, help="DAX Directory", required=True)
 
     args = parser.parse_args()
@@ -150,5 +180,5 @@ if __name__ == '__main__':
     if not os.path.isdir(args.outdir):
         os.makedirs(outdir)
 
-    workflow = single_hail_workflow(outdir, args.files)
+    workflow = single_hail_workflow(outdir, args.files, args.properties, args.replica)
     workflow.generate_workflow()

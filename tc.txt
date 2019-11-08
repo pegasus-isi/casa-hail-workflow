@@ -1,136 +1,119 @@
-cont single_hail_container {
-    type "singularity"
-    image_site "condorpool"
-    image "file://${PWD}/bin/hail_singularity.img"
+#### Docker ####
+cont hail_image {
+    type "docker"
+    image_site "casa-dtn"
+    image "http://casa-dtn/~ldm/containers/casa-hail.tar"
+    mount "/nfs/shared/ldm:/nfs/shared/ldm"
+    mount "/etc/hosts:/etc/hosts:ro"
+    profile env "PEGASUS_HOME" "/nfs/shared/ldm/pegasus-4.9.3panorama"
     #profile env "SEQEXEC_CPUS" "4"
 }
 
-cont single_hail_container_nfs {
-    type "singularity"
-    image_site "condorpool_nfs"
-    image "file://nfs/shared/hail_singularity.img"
-    mount "/nfs/shared:/nfs/shared"
-    #profile env "SEQEXEC_CPUS" "4"
-}
+#### Singularity ####
+#cont hail_image {
+#    type "singularity"
+#    image_site "casa-dtn"
+#    image "http://casa-dtn/~ldm/containers/casa-hail.sif"
+#    mount "/nfs/shared/ldm:/nfs/shared/ldm"
+#    mount "/etc/hosts:/etc/hosts:ro"
+#    profile env "PEGASUS_HOME" "/nfs/shared/ldm/pegasus-4.9.3panorama"
+#    profile env "SEQEXEC_CPUS" "4"
+#}
 
 tr gunzip {
-   site condorpool {
-   	pfn "/bin/gunzip"
-	arch "x86_64"
-	os "LINUX"
-	type "INSTALLED"
-	profile pegasus "label" "unzip"
-    }
-    site condorpool_nfs {
+    site condorpool {
         pfn "/bin/gunzip"
-  	arch "x86_64"
-	os "LINUX"
-	type "INSTALLED"
-	profile pegasus "label" "unzip"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+        profile pegasus "label" "casa_untar_job"
+        profile pegasus "cores" "4"
+        profile pegasus "memory" "2048"
+        profile env "SEQEXEC_CPUS" "4"
     }
 }
 
 tr hydroclass {
-   	site condorpool {
-	     	container "single_hail_container"
-		pfn "/opt/hydroclass/hydroclass"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-		profile pegasus "label" "casa_job"
-		#profile pegasus "cores" "1"
-	}
-   	site condorpool_nfs {
-	     	container "single_hail_container_nfs"
-		pfn "/opt/hydroclass/hydroclass"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-		profile pegasus "label" "casa_job"
-		#profile pegasus "cores" "1"
-	}
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/hydroclass/hydroclass"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+        profile pegasus "label" "casa_job"
+        #profile pegasus "cores" "1"
+    }
 }
 
 tr RadxConvert {
-        site condorpool {
-	     	 container "single_hail_container"
-                 pfn "/opt/hydroclass/RadxConvert"
-                 arch "x86_64"
-                 os "LINUX"
-		 type "INSTALLED"
-		 profile pegasus "label" "casa_job"
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/hydroclass/RadxConvert"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+        profile pegasus "label" "casa_job"
 	}
 }
 
 tr Radx2Grid {
-        site condorpool {
-       	    	container "single_hail_container"
-		pfn "/opt/hydroclass/Radx2Grid"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-		profile pegasus "label" "casa_job"
-	}
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/hydroclass/Radx2Grid"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+        profile pegasus "label" "casa_job"
+    }
 }
 
 tr hc_composite {
- 	site condorpool {
-	     	container "single_hail_container"
-		pfn "/opt/hydroclass/hc_composite"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-		profile pegasus "label" "casa_job"
-	}
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/hydroclass/hc_composite"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+        profile pegasus "label" "casa_job"
+    }
 }
 
 tr netcdf2png {
-   	site condorpool {
-	     	container "single_hail_container"
-		pfn "/opt/hydroclass_netcdf2png/netcdf2png"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-	}
-	site condorpool_nfs {
-	     	container "single_hail_container_nfs"
-		pfn "/opt/hydroclass_netcdf2png/netcdf2png"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-	}
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/hydroclass_netcdf2png/netcdf2png"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+    }
 }
 
 tr merged_hydroclass_netcdf2png {	
-      	site condorpool {
-                container "single_hail_container"
-		pfn "/opt/hydroclass_netcdf2png/merged_hydroclass_netcdf2png"	
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-	}
-  	site condorpool_nfs {
-	        container "single_hail_container_nfs"
-		pfn "/opt/hydroclass_netcdf2png/merged_hydroclass_netcdf2png"	
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-	}
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/hydroclass_netcdf2png/merged_hydroclass_netcdf2png"	
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+    }
 }
 
 tr d3_hmt {
-       site condorpool {
-       	    	container "single_hail_container"
-		pfn "/opt/d3_hmt/d3_hmt"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-	}
-	site condorpool_nfs {
-	     	container "single_hail_container_nfs"
-		pfn "/opt/d3_hmt/d3_hmt"
-		arch "x86_64"
-		os "LINUX"
-		type "INSTALLED"
-	}
+    site condorpool {
+        container "hail_image"
+        pfn "/opt/d3_hmt/d3_hmt"
+        arch "x86_64"
+        os "LINUX"
+        type "INSTALLED"
+    }
 }
+
+#tr pegasus::worker {
+#        site condorpool {
+#               pfn "http://casa-dtn/~ldm/pegasus/pegasus-worker-4.9.3panorama-x86_64_rhel_7.tar.gz"
+#               arch "x86_64"
+#               os "LINUX"
+#               type "INSTALLED"
+#        }
+#}
+
