@@ -83,7 +83,7 @@ sub file_monitor {
 		}
 	    }
 	    elsif ($suffix eq "png") {
-		my $pngpqins = "pqinsert -f EXP -p " . $filename . " " . $file;
+		my $pngpqins = "pqinsert -f EXP -p SC" . $filename . " " . $file;
 		system($pngpqins);
 		sleep 1;
 		unlink $file;
