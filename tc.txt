@@ -5,8 +5,8 @@ cont hail_image {
     image "http://casa-dtn/~ldm/containers/casa-hail.tar"
     #mount "/nfs/shared/ldm:/nfs/shared/ldm"
     mount "/etc/hosts:/etc/hosts:ro"
-    profile env "PEGASUS_HOME" "/nfs/shared/ldm/pegasus-4.9.3panorama"
-    #profile env "SEQEXEC_CPUS" "4"
+    #profile env "PEGASUS_HOME" "/nfs/shared/ldm/pegasus-4.9.3panorama"
+    profile env "SEQEXEC_CPUS" "4"
 }
 
 #### Singularity ####
