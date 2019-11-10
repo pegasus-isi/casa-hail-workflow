@@ -20,7 +20,7 @@ pegasus-plan --conf $PROPERTIESFILE \
     --dax $DAXFILE \
     --dir $DIR/submit \
     --sites condorpool \
-    --output-site local \
+    --output-site casa-dtn \
     --cleanup leaf \
     --cluster label \
     --force \
