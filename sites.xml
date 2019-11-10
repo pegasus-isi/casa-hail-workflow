@@ -16,8 +16,26 @@
       <profile namespace="pegasus" key="SSH_PRIVATE_KEY">/home/ldm/.ssh/storage_rsa</profile>
    </site>
 
-
    <site handle="condorpool" arch="x86_64" os="LINUX">
+      <!-- This is where intermediate data will be stored -->
+      <directory type="shared-scratch" path="/scratch">
+         <file-server operation="get" url="http://casa-dtn/~ldm/scratch"/>
+         <file-server operation="put" url="scp://ldm@casa-dtn/home/ldm/public_html/scratch"/>
+      </directory>
+
+      <!-- These profiles tell Pegasus that the site is a plain Condor pool -->
+      <profile namespace="pegasus" key="style">condor</profile>
+      <profile namespace="pegasus" key="data.configuration">nonsharedfs</profile>
+      <profile namespace="condor" key="universe">vanilla</profile>
+      <profile namespace="pegasus" key="auxillary.local">true</profile>
+
+      <profile namespace="pegasus" key="clusters.size">24</profile>
+
+      <profile namespace="env" key="PEGASUS_TRANSFER_PUBLISH">1</profile>
+      <profile namespace="env" key="PEGASUS_AMQP_URL">amqp://panorama:panorama@casa-dtn:5673/panorama/monitoring</profile>
+   </site>
+
+   <site handle="condorpool_nfs" arch="x86_64" os="LINUX">
       <!-- This is where intermediate data will be stored -->
       <directory type="shared-scratch" path="/nfs/shared/ldm/scratch">
          <file-server operation="all" url="file:///nfs/shared/ldm/scratch"/>
@@ -26,7 +44,6 @@
       <directory type="shared-storage" path="/nfs/shared/ldm/output">
          <file-server operation="all" url="file:///nfs/shared/ldm/output"/>
       </directory>
-
 
       <!-- These profiles tell Pegasus that the site is a plain Condor pool -->
       <profile namespace="pegasus" key="style">condor</profile>
