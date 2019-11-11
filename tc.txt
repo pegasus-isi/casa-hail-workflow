@@ -88,7 +88,17 @@ tr netcdf2png {
     }
 }
 
-tr merged_hydroclass_netcdf2png {	
+tr nc2png {
+   site condorpool {
+   	container "hail_image"	
+	pfn "/opt/nc2png/nc2png"
+	arch "x86_64"
+	os "LINUX"
+	type "INSTALLED"
+    }
+}
+
+tr merged_hydroclass_netcdf2png {							   
     site condorpool {
         container "hail_image"
         pfn "/opt/hydroclass_netcdf2png/merged_hydroclass_netcdf2png"	
