@@ -22,8 +22,7 @@ pegasus-plan --conf $PROPERTIESFILE \
     --sites condorpool \
     --output-site casa-dtn \
     --cleanup leaf \
-    --cluster label \
+    --cluster horizontal \
     --force \
     --submit
-    #--cluster horizontal \
     #--cluster label \
