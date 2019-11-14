@@ -157,7 +157,9 @@ class single_hail_workflow(object):
         prepare_subwf.uses(nexrad_subwf_rc, link=Link.OUTPUT, transfer=False, register=False)
         prepare_subwf.uses(nexrad_subwf_props, link=Link.OUTPUT, transfer=False, register=False)
         prepare_subwf.uses(nexrad_cart_input, link=Link.OUTPUT, transfer=False, register=False)
-        prepare_subwf.addArguments("-c", nexrad_watch_http_conf, "-p", nexrad_prefix, "-t", 20, "-n", nexrad_subwf_dax_name, "-r", nexrad_default_rc, "-s", nexrad_default_props, "-i", " -i ".join(cart_out_files))
+        prepare_subwf.addArguments("-c", nexrad_watch_http_conf, "-p", nexrad_prefix, "-t", "20", "-n", nexrad_subwf_dax_name, "-r", nexrad_default_rc, "-s", nexrad_default_props)
+        for cart_out_file in cart_out_files:
+            prepare_subwf.addArguments("-i", cart_out_file)
 
         dax.addJob(prepare_subwf)
         for hydro_grid_job in hydro_grid_jobs:
