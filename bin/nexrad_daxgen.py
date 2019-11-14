@@ -179,8 +179,6 @@ class composite_hail_workflow(object):
         hmt_job.uses(composite_outputfile, link=Link.INPUT)
         hmt_job.uses(hmt_outputfile, link=Link.OUTPUT, transfer=True, register=False)
         dax.addJob(hmt_job)
-        
-
 
 
         # Write the DAX file
