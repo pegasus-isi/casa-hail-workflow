@@ -39,7 +39,8 @@ class single_hail_workflow(object):
         dax.metadata("created", time.ctime())
 
         cart_out_files = []
-        file_hms = "0"
+        hydro_grid_jobs = []
+        file_time = "0"
 
         for pfn in self.nc_fn:
             if pfn.startswith("/") or pfn.startswith("file://"):
@@ -118,6 +119,7 @@ class single_hail_workflow(object):
             hydro_grid_job.uses(hydroclass_cfradialfile, link=Link.INPUT)
             hydro_grid_job.uses(hydroclass_outputcartfile, link=Link.OUTPUT, transfer=True, register=False)
             dax.addJob(hydro_grid_job)
+            hydro_grid_jobs.append(hydro_grid_job)
 
             netcdf2png_colorscalefilename = "standard_hmc_single.png"
             netcdf2png_colorscalefile = File(netcdf2png_colorscalefilename)
@@ -133,20 +135,36 @@ class single_hail_workflow(object):
 	    dax.addJob(netcdf2png_job)
         
         # Preparing subworkflow
-        e_generate_subwf = Executable("generate_sbwf")
+        e_casa_watch_http = Executable("casa_watch_http")
+        e_nexrad_daxgen = Executable("nexrad_daxgen")
+        nexrad_subwf_dax_name = "casa_hail_nexrad_wf-%s" % ts
         nexrad_subwf_dax = File("casa_hail_nexrad_wf-%s.dax" % ts)
         nexrad_subwf_rc = File("casa_hail_nexrad_wf-%s.rc.txt" % ts)
         nexrad_subwf_props = File("casa_hail_nexrad_wf-%s.properties" % ts)
-        nexrad_prefix = "burleson.tx-%s" % file_hms[:-2] # assume that all files have same hour and minute, thus the last set file_hms should work
+        nexrad_cart_input = File("composite_cart_input.txt")
+        nexrad_prefix = "burleson.tx-%s" % file_time[:-2] # assume that all files have same hour and minute, thus the last set file_time[:-2] should work
+        nexrad_default_props = File("pegasus.default.properties")
+        nexrad_default_rc = File("rc.default.txt")
+        nexrad_watch_http_conf = File("watch_http_nexrad.cf")
 
-        watch_nexrad = Job("watch_http")
-        watch_nexrad(e_generate_subwf, link=Link.INPUT)
-        for cart_out_file in cart_out_files:
-            watch_nexrad(cart_out_file, link=Link.INPUT)
-        watch_nexrad(nexrad_subwf_dax, link=Link.OUTPUT, transfer=False, register=False)
-        watch_nexrad(nexrad_subwf_rc, link=Link.OUTPUT, transfer=False, register=False)
-        watch_nexrad(nexrad_subwf_props, link=Link.OUTPUT, transfer=False, register=False)
-        watch_nexrad.addArguments("-c", "watch_http_nexrad.conf", "-t", 20, "-p", hydroclass_outputcartfilename)
+        prepare_subwf = Job("prepare_subwf")
+        prepare_subwf(e_casa_watch_http, link=Link.INPUT)
+        prepare_subwf(e_nexrad_daxgen, link=Link.INPUT)
+        prepare_subwf(nexrad_default_rc, link=Link.INPUT)
+        prepare_subwf(nexrad_default_props, link=Link.INPUT)
+        prepare_subwf(nexrad_watch_http_conf, link=Link.INPUT)
+        prepare_subwf(nexrad_subwf_dax, link=Link.OUTPUT, transfer=False, register=False)
+        prepare_subwf(nexrad_subwf_rc, link=Link.OUTPUT, transfer=False, register=False)
+        prepare_subwf(nexrad_subwf_props, link=Link.OUTPUT, transfer=False, register=False)
+        prepare_subwf(nexrad_cart_input, link=Link.OUTPUT, transfer=False, register=False)
+        prepare_subwf.addArguments("-c", nexrad_watch_http_conf, "-p", nexrad_prefix, "-t", 20, "-n", nexrad_subwf_dax_name, "-r", nexrad_default_rc, "-s", nexrad_default_props, "-i", " -i ".join(cart_out_file))
+
+        dax.addJob(prepare_subwf)
+        for hydro_grid_job in hydro_grid_jobs:
+            dax.depends(hydro_grid_job, prepare_subwf)
+        
+        #for cart_out_file in cart_out_files:
+        #    watch_nexrad(cart_out_file, link=Link.INPUT)
 
         # Write the DAX file
         dax_file = os.path.join(self.outdir, dax.name+".dax")

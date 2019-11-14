@@ -20,6 +20,33 @@ cont hail_image {
 #    profile env "PEGASUS_HOME" "/nfs/shared/ldm/pegasus-4.9.3panorama"
 }
 
+tr nexrad_daxgen {
+    site local {
+        pfn "${PWD}/bin/nexrad_daxgen.py"
+        arch "x86_64"
+        os "LINUX"
+        type "STAGEABLE"
+    }
+}
+
+tr prepare_subwf {
+    site local {
+        pfn "${PWD}/bin/prepare_subwf.sh"
+        arch "x86_64"
+        os "LINUX"
+        type "STAGEABLE"
+    }
+}
+
+tr casa_watch_http {
+    site local {
+        pfn "${PWD}/bin/casa_watch_http.py"
+        arch "x86_64"
+        os "LINUX"
+        type "STAGEABLE"
+    }
+}
+
 tr gunzip {
     site condorpool {
         pfn "/bin/gunzip"

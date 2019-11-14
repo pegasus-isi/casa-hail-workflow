@@ -10,5 +10,4 @@ burleson.tx_latlon.txt	         http://casa-dtn/~ldm/input/hail/burleson.tx_latl
 standard_mergedhmc_nosnow.png	   http://casa-dtn/~ldm/input/hail/standard_mergedhmc_nosnow.png	site="casa-dtn"
 standard_hmc_single.png	         http://casa-dtn/~ldm/input/hail/standard_hmc_single.png	      site="casa-dtn"
 standard_ref.png		 http://casa-dtn/~ldm/input/hail/standard_ref.png 		      site="casa-dtn"
-composite_cart_input.txt	      http://casa-dtn/~ldm/input/hail/composite_cart_input.txt	      site="casa-dtn"
 options.cfg		                  http://casa-dtn/~ldm/input/hail/options.cfg		               site="casa-dtn"
