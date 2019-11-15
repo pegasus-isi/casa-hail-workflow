@@ -223,5 +223,5 @@ if __name__ == '__main__':
         print "Expected one file as input. Processing only the first file"
         args.files = args.files[:1]
 
-    workflow = composite_hail_workflow(args.name outdir, args.files, args.cartfiles, args.properties, args.replica)
+    workflow = composite_hail_workflow(args.name, outdir, args.files, args.cartfiles, args.properties, args.replica)
     workflow.generate_workflow()

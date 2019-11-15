@@ -19,7 +19,7 @@ PROPERTIESFILE=$2
 pegasus-plan --conf $PROPERTIESFILE \
     --dax $DAXFILE \
     --dir $DIR/submit \
-    --sites condorpool \
+    --sites local,condorpool \
     --output-site casa-dtn \
     --cleanup leaf \
     --cluster horizontal \
