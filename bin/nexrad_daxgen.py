@@ -138,7 +138,7 @@ class composite_hail_workflow(object):
 
 	inputtxtfilename = "composite_cart_input.txt"
         inputtxtfile = File(inputtxtfilename)
-        with g open(inputtxtfilename, "w+"):
+        with open(inputtxtfilename, "w+") as g:
             for f in cart_inputs:
                 g.write(f)
                 g.write("\n")

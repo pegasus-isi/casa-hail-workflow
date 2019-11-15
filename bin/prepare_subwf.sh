@@ -36,8 +36,8 @@ if [ -z "$watch_config" ] || [ -z "$accepted_prefix" ] || [ -z "$timeout" ] || [
 fi
 
 echo "<adag></adag>" > ${daxname}.dax
-cp $default_props ${daxname}.properties > /dev/null 2>&1
-cp $default_replica ${daxname}.rc.txt > /dev/null 2>&1
+cp $default_props ${daxname}.properties
+cp $default_replica ${daxname}.rc.txt
 echo "EMPTY" > composite_cart_input.txt
 
 echo "accepted_prefixes=${accepted_prefix}" >> ${watch_config}
@@ -48,8 +48,8 @@ cat << EOF > generate_wf.sh
 daxgen_out=$(python nexrad_daxgen -n ${daxname} -o . -p ${default_props} -r ${default_replica} -cf ${cart_input[@]} -f $@)
 EOF
 
-chmod +x generare_wf.sh
+chmod +x generate_wf.sh
 
-python3 casa_watch_http --conf ${watch_config} --timeout ${timeout}
+/usr/bin/python3 casa_watch_http --conf ${watch_config} --timeout ${timeout}
 
 exit 0
