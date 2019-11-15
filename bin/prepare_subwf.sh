@@ -40,16 +40,16 @@ cp $default_props ${daxname}.properties > /dev/null 2>&1
 cp $default_replica ${daxname}.rc.txt > /dev/null 2>&1
 echo "EMPTY" > composite_cart_input.txt
 
-echo "accepted_prefixes=${accepted_prefix}" >> ${HTTP_WATCH_CONFIG}
+echo "accepted_prefixes=${accepted_prefix}" >> ${watch_config}
 
 cat << EOF > generate_wf.sh
 #!/usr/bin/env bash
 
-daxgen_out=$(python daxgen.py -n ${daxname} -o . -p ${default_props} -r ${default_replica} -cf ${cart_input[@]} -f $@)
+daxgen_out=$(python nexrad_daxgen -n ${daxname} -o . -p ${default_props} -r ${default_replica} -cf ${cart_input[@]} -f $@)
 EOF
 
 chmod +x generare_wf.sh
 
-python casa_watch_http --conf ${HTTP_WATCH_CONFIG} --timeout ${timeout}
+python3 casa_watch_http --conf ${watch_config} --timeout ${timeout}
 
 exit 0
