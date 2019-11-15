@@ -45,11 +45,11 @@ echo "accepted_prefixes=${accepted_prefix}" >> ${watch_config}
 cat << EOF > generate_wf.sh
 #!/usr/bin/env bash
 
-daxgen_out=$(python nexrad_daxgen -n ${daxname} -o . -p ${default_props} -r ${default_replica} -cf ${cart_input[@]} -f $@)
+daxgen_out=\$(python nexrad_daxgen.py -n ${daxname} -o . -p ${default_props} -r ${default_replica} -cf ${cart_input[@]} -f \$@)
 EOF
 
 chmod +x generate_wf.sh
 
-/usr/bin/python3 casa_watch_http --conf ${watch_config} --timeout ${timeout}
+/usr/bin/python3 casa_watch_http.py --conf ${watch_config} --timeout ${timeout}
 
 exit 0

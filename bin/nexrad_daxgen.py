@@ -82,7 +82,6 @@ class composite_hail_workflow(object):
             self.cart_files.append(hydroclass_outputcartfilename)
             
             hydroclass_outputcartfile = File(hydroclass_outputcartfilename)
-            cart_out_files.append(hydroclass_outputcartfile)
 
             radx_configfilename = radarloc + "_latlon.txt"
             radx_configfile = File(radx_configfilename)

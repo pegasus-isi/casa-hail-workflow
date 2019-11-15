@@ -129,7 +129,7 @@ def casa_watch_worker(signal_raised, workflow_type, url_list, accepted_prefixes,
 
 
         current_time = time.time()
-        if workflow_type in ["generic", "nowcast", "wind"] and (current_time - start_time) > interval:
+        if workflow_type in ["generic", "nowcast", "hail_composite", "wind"] and (current_time - start_time) > interval:
             start_time = current_time
             if workflow_type in ["nowcast", "hail_composite", "generic"]:
                 for f in new_files:
@@ -260,7 +260,7 @@ if __name__ == "__main__":
             processArray.append(p)
             p.start()
         elif config[section]["workflow_type"] == "hail_composite":
-            p = Process(target=casa_watch_worker, args=(signal_raised, "hail", url_list, accepted_prefixes, accepted_suffixes, workflow_dir, trigger_script, config.getint(section, "interval")))
+            p = Process(target=casa_watch_worker, args=(signal_raised, "hail_composite", url_list, accepted_prefixes, accepted_suffixes, workflow_dir, trigger_script, config.getint(section, "interval")))
             processArray.append(p)
             p.start()
         elif config[section]["workflow_type"] == "generic":

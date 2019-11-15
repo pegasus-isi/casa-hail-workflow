@@ -135,8 +135,10 @@ class single_hail_workflow(object):
 	    dax.addJob(netcdf2png_job)
         
         # Preparing subworkflow
-        e_casa_watch_http = Executable("casa_watch_http")
-        e_nexrad_daxgen = Executable("nexrad_daxgen")
+        #e_casa_watch_http = Executable("casa_watch_http.py")
+        #e_nexrad_daxgen = Executable("nexrad_daxgen.py")
+        e_casa_watch_http = File("casa_watch_http.py")
+        e_nexrad_daxgen = File("nexrad_daxgen.py")
         nexrad_subwf_dax_name = "casa_hail_nexrad_wf-%s" % ts
         nexrad_subwf_dax = File("casa_hail_nexrad_wf-%s.dax" % ts)
         nexrad_subwf_rc = File("casa_hail_nexrad_wf-%s.rc.txt" % ts)
