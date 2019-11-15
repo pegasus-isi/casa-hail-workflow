@@ -145,7 +145,7 @@ class single_hail_workflow(object):
         nexrad_prefix = "burleson.tx-%s" % file_time[:-2] # assume that all files have same hour and minute, thus the last set file_time[:-2] should work
         nexrad_default_props = File("pegasus.default.properties")
         nexrad_default_rc = File("rc.default.txt")
-        nexrad_watch_http_conf = File("watch_http_nexrad.cf")
+        nexrad_watch_http_conf = File("watch_http_nexrad.cfg")
 
         prepare_subwf = Job("prepare_subwf")
         prepare_subwf.uses(e_casa_watch_http, link=Link.INPUT)
@@ -163,11 +163,11 @@ class single_hail_workflow(object):
 
         dax.addJob(prepare_subwf)
         for hydro_grid_job in hydro_grid_jobs:
-            dax.depends(hydro_grid_job, prepare_subwf)
+            dax.depends(parent=hydro_grid_job, child=prepare_subwf)
         
         subwf = DAX(nexrad_subwf_dax)
-        subwf.addArguments("--conf=%s" % nexrad_subwf_props,
-                       "-Dpegasus.catalog.replica.file=%s" % nexrad_subwf_rc,
+        subwf.addArguments("--conf=%s" % nexrad_subwf_props.name,
+                       "-Dpegasus.catalog.replica.file=%s" % nexrad_subwf_rc.name,
                        "-Dpegasus.catalog.site.file=nexrad_sites.xml",
                        "--sites", "condorpool",
                        "--basename", "nexrad",
@@ -182,7 +182,7 @@ class single_hail_workflow(object):
             subwf.uses(cart_out_file, link=Link.INPUT)
         subwf.addProfile(Profile("dagman", "CATEGORY", "subworkflow"))
         dax.addDAX(subwf)
-        dax.depends(prepare_subwf, subwf)
+        dax.depends(parent=prepare_subwf, child=subwf)
 
         # Write the DAX file
         dax_file = os.path.join(self.outdir, dax.name+".dax")

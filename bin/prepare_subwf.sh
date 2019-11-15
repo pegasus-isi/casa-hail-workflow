@@ -35,9 +35,9 @@ if [ -z "$watch_config" ] || [ -z "$accepted_prefix" ] || [ -z "$timeout" ] || [
     exit 1
 fi
 
-echo "EMPTY" > ${daxname}.dax
-echo "EMPTY" > ${daxname}.properties
-echo "EMPTY" > ${daxname}.rc.txt
+echo "<adag></adag>" > ${daxname}.dax
+cp $default_props ${daxname}.properties > /dev/null 2>&1
+cp $default_replica ${daxname}.rc.txt > /dev/null 2>&1
 echo "EMPTY" > composite_cart_input.txt
 
 echo "accepted_prefixes=${accepted_prefix}" >> ${HTTP_WATCH_CONFIG}
