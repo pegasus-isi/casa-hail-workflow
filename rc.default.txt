@@ -1,6 +1,7 @@
 watch_http_nexrad.cfg		      file://${PWD}/input/watch_http_nexrad.cfg		                  site="local"
 nexrad_sites.xml                 file://${PWD}/input/subwf/sites.xml		                     site="local"
 rc.default.txt                   file://${PWD}/input/subwf/rc.default.txt                   site="local"
+tc.txt                   file://${PWD}/input/subwf/tc.txt                   site="local"
 pegasus.default.properties       file://${PWD}/input/subwf/pegasus.default.properties       site="local"
 HC_XMDL.tx.ini		               http://casa-dtn/~ldm/input/hail/HC_XMDL.tx.ini	               site="casa-dtn"
 HC_XUTA.tx.ini		               http://casa-dtn/~ldm/input/hail/HC_XUTA.tx.ini	               site="casa-dtn"

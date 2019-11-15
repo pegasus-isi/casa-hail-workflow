@@ -178,6 +178,7 @@ class single_hail_workflow(object):
         subwf.uses(nexrad_subwf_rc, link=Link.INPUT)
         subwf.uses(nexrad_subwf_props, link=Link.INPUT)
         subwf.uses(nexrad_cart_input, link=Link.INPUT)
+        subwf.uses("tc.txt", link=Link.INPUT)
         for cart_out_file in cart_out_files:
             subwf.uses(cart_out_file, link=Link.INPUT)
         subwf.addProfile(Profile("dagman", "CATEGORY", "subworkflow"))
