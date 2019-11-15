@@ -35,7 +35,7 @@ if [ -z "$watch_config" ] || [ -z "$accepted_prefix" ] || [ -z "$timeout" ] || [
     exit 1
 fi
 
-echo "<adag></adag>" > ${daxname}.dax
+echo "<adag xmlns=\"http://pegasus.isi.edu/schema/DAX\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://pegasus.isi.edu/schema/DAX http://pegasus.isi.edu/schema/dax-3.6.xsd\" version=\"3.6\" name=\"${daxname}\"></adag>" > ${daxname}.dax
 cp $default_props ${daxname}.properties
 cp $default_replica ${daxname}.rc.txt
 echo "EMPTY" > composite_cart_input.txt
