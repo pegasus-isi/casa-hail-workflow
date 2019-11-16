@@ -171,7 +171,7 @@ class single_hail_workflow(object):
         subwf.addArguments("--conf=%s" % nexrad_subwf_props.name,
                        "-Dpegasus.catalog.replica.file=%s" % nexrad_subwf_rc.name,
                        "-Dpegasus.catalog.site.file=nexrad_sites.xml",
-                       "--sites", "condorpool",
+                       "--sites", "local,condorpool",
                        "--basename", "nexrad",
                        "--force",
                        "--force-replan",
