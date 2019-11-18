@@ -112,6 +112,7 @@ tr netcdf2png {
         arch "x86_64"
         os "LINUX"
         type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
@@ -122,6 +123,7 @@ tr nc2png {
 	arch "x86_64"
 	os "LINUX"
 	type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
@@ -132,6 +134,7 @@ tr merged_hydroclass_netcdf2png {
         arch "x86_64"
         os "LINUX"
         type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
@@ -142,6 +145,7 @@ tr d3_hmt {
         arch "x86_64"
         os "LINUX"
         type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 

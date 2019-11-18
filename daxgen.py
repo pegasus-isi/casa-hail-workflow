@@ -175,7 +175,7 @@ class single_hail_workflow(object):
                        "--basename", "nexrad",
                        "--force",
                        "--force-replan",
-                       "--output", "casa-dtn")
+                       "--output-site", "casa-dtn")
         subwf.uses(nexrad_subwf_dax, link=Link.INPUT)
         subwf.uses(nexrad_subwf_rc, link=Link.INPUT)
         subwf.uses(nexrad_subwf_props, link=Link.INPUT)

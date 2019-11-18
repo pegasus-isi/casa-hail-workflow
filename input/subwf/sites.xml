@@ -30,8 +30,8 @@
       <profile namespace="condor" key="universe">vanilla</profile>
       <profile namespace="pegasus" key="auxillary.local">true</profile>
 
-      <profile namespace="pegasus" key="clusters.size">12</profile>
-      <profile namespace="pegasus" key="cores">4</profile>
+      <!--profile namespace="pegasus" key="clusters.size">12</profile-->
+      <!--profile namespace="pegasus" key="cores">4</profile-->
 
       <profile namespace="env" key="PEGASUS_TRANSFER_PUBLISH">1</profile>
       <profile namespace="env" key="PEGASUS_AMQP_URL">amqp://panorama:panorama@casa-dtn:5673/panorama/monitoring</profile>

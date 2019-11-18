@@ -15,7 +15,7 @@ cont hail_image {
     image_site "casa-dtn"
     image "http://casa-dtn/~ldm/containers/casa-hail.sif"
     mount "/etc/hosts:/etc/hosts:ro"
-    profile env "SEQEXEC_CPUS" "4"
+#    profile env "SEQEXEC_CPUS" "4"
 #    mount "/nfs/shared/ldm:/nfs/shared/ldm"
 #    profile env "PEGASUS_HOME" "/nfs/shared/ldm/pegasus-4.9.3panorama"
 }
@@ -54,9 +54,9 @@ tr gunzip {
         os "LINUX"
         type "INSTALLED"
         profile pegasus "label" "casa_untar_job"
-        profile pegasus "cores" "4"
+        #profile pegasus "cores" "4"
         profile pegasus "memory" "2048"
-        profile env "SEQEXEC_CPUS" "4"
+        #profile env "SEQEXEC_CPUS" "4"
     }
 }
 
@@ -112,6 +112,7 @@ tr netcdf2png {
         arch "x86_64"
         os "LINUX"
         type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
@@ -122,6 +123,7 @@ tr nc2png {
 	arch "x86_64"
 	os "LINUX"
 	type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
@@ -132,6 +134,7 @@ tr merged_hydroclass_netcdf2png {
         arch "x86_64"
         os "LINUX"
         type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
@@ -142,6 +145,7 @@ tr d3_hmt {
         arch "x86_64"
         os "LINUX"
         type "INSTALLED"
+        profile pegasus "label" "casa_job"
     }
 }
 
