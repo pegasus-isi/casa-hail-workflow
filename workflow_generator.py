@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 """CASA Hail workflow generator (Pegasus 5).
 
-Generates workflow.yml with the site, transformation, and replica catalogs
-embedded, so it plans with a plain `pegasus-plan -s condorpool -o local
-workflow.yml` — no external sites.xml/tc.txt/rc.txt and no --input-dir.
+Generates workflow.yml with the transformation and replica catalogs embedded,
+plus pegasus.properties, so it plans with a plain
+`pegasus-plan --conf pegasus.properties -s compute -o local workflow.yml` — no
+external tc.txt/rc.txt and no --input-dir.
+
+Sites follow pegasus-isi/pegasus-gromacs: jobs run on a site named "compute",
+defined by a centrally hosted site catalog (-s access-pegasus.yml, ...;
+https://github.com/pegasushub/pegasus-site-catalogs) or by one in
+~/.pegasusrc. The generator writes no site catalog; on a plain HTCondor pool
+with no site catalog, use -e condorpool (Pegasus builds that site itself).
+It does not plan or submit: run the pegasus-plan command it prints, or use
+CASA-Hail-Workflow.ipynb.
 
 For each radar moment file (<radar>-YYYYMMDD-HHMMSS.netcdf[.gz]):
-  1. gunzip decompresses it if needed (host tool, no container)
+  1. gunzip decompresses it if needed
   2. burleson.tx (NEXRAD KFWS) only: RadxConvert rewrites it to CfRadial
   3. hydroclass classifies hydrometeors (hail/rain/snow) per sweep
   4. Radx2Grid maps the classification onto a cartesian grid
@@ -18,8 +27,10 @@ parameters (see RADAR_CONFIGS / input/*_latlon.txt).
 
 import os
 import re
+import sys
 from argparse import ArgumentParser
 from datetime import datetime, timezone
+from pathlib import Path
 
 from Pegasus.api import (
     OS,
@@ -30,6 +41,8 @@ from Pegasus.api import (
     FileServer,
     Job,
     Operation,
+    PegasusClientError,
+    Properties,
     ReplicaCatalog,
     Site,
     SiteCatalog,
@@ -37,6 +50,15 @@ from Pegasus.api import (
     TransformationCatalog,
     Workflow,
 )
+
+# Per-tool resource configuration for the transformation catalog.
+TOOL_CONFIGS = {
+    "gunzip": {"memory": "1 GB", "cores": 1},
+    "RadxConvert": {"memory": "2 GB", "cores": 1},
+    "hydroclass": {"memory": "4 GB", "cores": 1},
+    "Radx2Grid": {"memory": "4 GB", "cores": 1},
+    "netcdf2png": {"memory": "2 GB", "cores": 1},
+}
 
 RADAR_CONFIGS = {
     "arlington.tx": "HC_XUTA.tx.ini",
@@ -55,79 +77,171 @@ def radar_config(radar_name):
 
 
 class HailWorkflow(object):
-    def __init__(self, outdir, radar_files):
+    wf = None
+    sc = None
+    tc = None
+    rc = None
+    props = None
+
+    def __init__(self, outdir, radar_files,
+                 container_sif="Apptainer/CASA_Hail_Container.sif"):
         self.outdir = outdir
         self.radar_files = radar_files
+        self.wf_dir = str(Path(__file__).parent.resolve())
+        self.container_sif = container_sif
+        self.shared_scratch_dir = os.path.join(outdir, "scratch")
+        self.local_storage_dir = os.path.join(outdir, "output")
+        self.dagfile = os.path.join(outdir, "workflow.yml")
+        self.propsfile = os.path.join(outdir, "pegasus.properties")
 
-    def build_site_catalog(self):
-        sc = SiteCatalog()
+    def write(self):
+        """Write workflow.yml (catalogs embedded) and pegasus.properties."""
+        if self.sc is not None:
+            self.wf.add_site_catalog(self.sc)
+        self.wf.add_transformation_catalog(self.tc)
+        self.wf.add_replica_catalog(self.rc)
+        self.props.write(self.propsfile)
+        self.wf.write(self.dagfile)
 
-        base = os.getcwd()
+    # ------------------------------------------------------------------
+    # Plan / run / monitor (thin wrappers over the Pegasus API Workflow
+    # object, for interactive use e.g. from a Jupyter notebook)
+    # ------------------------------------------------------------------
+    def plan_submit(self, exec_site_name="compute", raise_errors=False):
+        try:
+            self.wf.plan(
+                conf=self.propsfile,
+                dir=os.path.join(self.outdir, "submit"),
+                sites=[exec_site_name],
+                output_sites=["local"],
+                cleanup="leaf",
+                verbose=1,
+                submit=True,
+            )
+        except PegasusClientError as e:
+            print(e)
+            if raise_errors:
+                raise
+
+    def status(self):
+        try:
+            self.wf.status(long=True)
+        except PegasusClientError as e:
+            print(e)
+
+    def wait(self):
+        try:
+            self.wf.wait()
+        except PegasusClientError as e:
+            print(e)
+
+    def statistics(self):
+        try:
+            self.wf.statistics()
+        except PegasusClientError as e:
+            print(e)
+
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
+    def create_pegasus_properties(self, hosted_site_catalog=None):
+        self.props = Properties()
+        # This is the name of the application for analytics
+        self.props["pegasus.metrics.app"] = "CASA-HAIL"
+        self.props["pegasus.integrity.checking"] = "none"
+        self.props["pegasus.transfer.threads"] = "16"
+        if hosted_site_catalog:
+            # Use one of Pegasus' centrally hosted site catalogs instead of
+            # a locally generated one. pegasus-plan downloads and caches the
+            # named file from the catalog repository at plan time.
+            # https://pegasus.isi.edu/documentation/reference-guide/catalogs.html#centrally-hosted-site-catalogs
+            self.props["pegasus.catalog.site.repo.file"] = hosted_site_catalog
+
+    # ------------------------------------------------------------------
+    # Site Catalog
+    #
+    # Not used by the CLI below — pegasus-plan resolves the site catalog
+    # from a centrally hosted one instead (see -s/--hosted-site-catalog and
+    # create_pegasus_properties above). Kept for programmatic/notebook use
+    # when a self-contained, locally generated HTCondor site catalog is
+    # wanted.
+    # ------------------------------------------------------------------
+    def create_sites_catalog(self, exec_site_name="compute"):
+        self.sc = SiteCatalog()
+
         local = Site("local", arch=Arch.X86_64, os_type=OS.LINUX)
         local.add_directories(
             Directory(
-                Directory.SHARED_SCRATCH, os.path.join(base, "scratch")
+                Directory.SHARED_SCRATCH, self.shared_scratch_dir
             ).add_file_servers(
-                FileServer("file://" + os.path.join(base, "scratch"), Operation.ALL)
+                FileServer("file://" + self.shared_scratch_dir, Operation.ALL)
             ),
             Directory(
-                Directory.SHARED_STORAGE, os.path.join(base, "output")
+                Directory.LOCAL_STORAGE, self.local_storage_dir
             ).add_file_servers(
-                FileServer("file://" + os.path.join(base, "output"), Operation.ALL)
+                FileServer("file://" + self.local_storage_dir, Operation.ALL)
             ),
         )
 
-        condorpool = Site("condorpool", arch=Arch.X86_64, os_type=OS.LINUX)
-        condorpool.add_condor_profile(universe="vanilla")
-        condorpool.add_pegasus_profile(style="condor", data_configuration="condorio")
+        exec_site = Site(exec_site_name, arch=Arch.X86_64, os_type=OS.LINUX)
+        exec_site.add_condor_profile(universe="vanilla")
+        exec_site.add_pegasus_profile(style="condor", data_configuration="condorio")
 
-        sc.add_sites(local, condorpool)
-        return sc
+        self.sc.add_sites(local, exec_site)
 
-    def build_transformation_catalog(self):
-        tc = TransformationCatalog()
+    # ------------------------------------------------------------------
+    # Transformation Catalog
+    # ------------------------------------------------------------------
+    def create_transformation_catalog(self, exec_site_name="compute"):
+        self.tc = TransformationCatalog()
 
-        # Singularity (not Docker): it pulls docker:// images straight from
-        # the registry without a Docker daemon, so the workflow also runs on
-        # hosts with only singularity/apptainer installed (e.g. Kubernetes
-        # pods, HPC nodes).
+        # A local Apptainer .sif built with `apptainer build` from
+        # Apptainer/CASA_Hail_Container.def. Pegasus stages the file like any
+        # other input, so image_site is the site where the .sif physically
+        # lives (the submit host = "local").
+        sif_path = (
+            self.container_sif
+            if os.path.isabs(self.container_sif)
+            else os.path.join(self.wf_dir, self.container_sif)
+        )
+        if not os.path.exists(sif_path):
+            print(
+                f"warning: Apptainer image not found at {sif_path} — build it "
+                f"first with: apptainer build {sif_path} "
+                f"Apptainer/CASA_Hail_Container.def",
+                file=sys.stderr,
+            )
         hail_container = Container(
             "single_hail_container",
-            Container.SINGULARITY,
-            image="docker://casaelyons/single_hail_container",
-            image_site="docker_hub",
+            container_type=Container.SINGULARITY,
+            image="file://" + sif_path,
+            image_site="local",
         )
-        tc.add_containers(hail_container)
+        self.tc.add_containers(hail_container)
 
-        # gunzip runs on the execute host directly — no container needed.
-        tc.add_transformations(
-            Transformation(
-                "gunzip",
-                site="condorpool",
-                pfn="/bin/gunzip",
-                is_stageable=False,
-                arch=Arch.X86_64,
-                os_type=OS.LINUX,
-            )
-        )
+        # gunzip runs in the container too (the image ships /bin/gunzip), so
+        # the workflow needs nothing installed on the workers.
         for name, pfn in (
+            ("gunzip", "/bin/gunzip"),
             ("RadxConvert", "/opt/hydroclass/RadxConvert"),
             ("hydroclass", "/opt/hydroclass/hydroclass"),
             ("Radx2Grid", "/opt/hydroclass/Radx2Grid"),
             ("netcdf2png", "/opt/hydroclass_netcdf2png/netcdf2png"),
         ):
-            tc.add_transformations(
+            self.tc.add_transformations(
                 Transformation(
                     name,
-                    site="condorpool",
+                    site=exec_site_name,
                     pfn=pfn,
                     is_stageable=False,
                     container=hail_container,
                     arch=Arch.X86_64,
                     os_type=OS.LINUX,
+                ).add_pegasus_profile(
+                    memory=TOOL_CONFIGS[name]["memory"],
+                    cores=TOOL_CONFIGS[name]["cores"],
                 )
             )
-        return tc
 
     def parse_radar_file(self, path):
         """(radar_name, ymd, hms) from <radar>-YYYYMMDD-HHMMSS.<ext>."""
@@ -140,9 +254,12 @@ class HailWorkflow(object):
             )
         return m.group("radar"), m.group("ymd"), m.group("hms")
 
-    def build_replica_catalog(self):
-        rc = ReplicaCatalog()
-        input_dir = os.path.abspath("input")
+    # ------------------------------------------------------------------
+    # Replica Catalog
+    # ------------------------------------------------------------------
+    def create_replica_catalog(self):
+        self.rc = ReplicaCatalog()
+        input_dir = os.path.join(self.wf_dir, "input")
 
         aux = {SOUNDING, COLORSCALE}
         for path in self.radar_files:
@@ -155,20 +272,18 @@ class HailWorkflow(object):
                 raise SystemExit(
                     f"error: required config file input/{name} not found"
                 )
-            rc.add_replica("local", name, "file://" + full)
+            self.rc.add_replica("local", name, "file://" + full)
 
         for path in self.radar_files:
-            rc.add_replica("local", os.path.basename(path), "file://" + path)
-        return rc
+            self.rc.add_replica("local", os.path.basename(path), "file://" + path)
 
-    def generate_workflow(self):
+    # ------------------------------------------------------------------
+    # Workflow DAG
+    # ------------------------------------------------------------------
+    def create_workflow(self):
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        wf = Workflow("casa-hail-wf-%s" % ts)
+        self.wf = wf = Workflow("casa-hail-wf-%s" % ts)
         wf.add_metadata(name="CASA Hail")
-
-        wf.add_site_catalog(self.build_site_catalog())
-        wf.add_transformation_catalog(self.build_transformation_catalog())
-        wf.add_replica_catalog(self.build_replica_catalog())
 
         soundingfile = File(SOUNDING)
 
@@ -277,10 +392,6 @@ class HailWorkflow(object):
                 )
                 wf.add_jobs(png_job)
 
-        wf_path = os.path.join(self.outdir, "workflow.yml")
-        wf.write(wf_path)
-        print(wf_path)
-
 
 def resolve_radar_file(name):
     """Absolute path of a radar file given bare name or path."""
@@ -292,8 +403,13 @@ def resolve_radar_file(name):
     raise SystemExit(f"error: radar file '{name}' not found (looked in ./input/)")
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(description="CASA Hail Workflow")
+def main():
+    parser = ArgumentParser(
+        description="CASA Hail Workflow",
+        epilog="Writes workflow.yml and pegasus.properties; it does not plan "
+        "or submit. Run the pegasus-plan command it prints, or use "
+        "CASA-Hail-Workflow.ipynb.",
+    )
     parser.add_argument(
         "-f",
         "--files",
@@ -310,7 +426,37 @@ if __name__ == "__main__":
         metavar="OUTPUT_LOCATION",
         type=str,
         default=".",
-        help="Directory to write workflow.yml into (default: project root)",
+        help="Directory to write workflow.yml and pegasus.properties into "
+        "(default: project root)",
+    )
+    parser.add_argument(
+        "--container-sif",
+        metavar="PATH",
+        type=str,
+        default="Apptainer/CASA_Hail_Container.sif",
+        help="Path to the Apptainer .sif image, absolute or relative to the "
+        "workflow directory (default: Apptainer/CASA_Hail_Container.sif)",
+    )
+    parser.add_argument(
+        "-s",
+        "--hosted-site-catalog",
+        metavar="FILE",
+        type=str,
+        default=None,
+        help="Name of a Pegasus centrally hosted site catalog to plan against "
+        "(e.g. access-pegasus.yml), instead of a locally generated one. Sets "
+        "pegasus.catalog.site.repo.file; see "
+        "https://pegasus.isi.edu/documentation/reference-guide/catalogs.html"
+        "#centrally-hosted-site-catalogs",
+    )
+    parser.add_argument(
+        "-e",
+        "--execution-site-name",
+        metavar="STR",
+        type=str,
+        default="compute",
+        help="Execution site name (default: compute; use condorpool on a "
+        "plain HTCondor pool with no site catalog)",
     )
 
     args = parser.parse_args()
@@ -318,4 +464,23 @@ if __name__ == "__main__":
     os.makedirs(outdir, exist_ok=True)
 
     radar_files = [resolve_radar_file(f) for f in args.files]
-    HailWorkflow(outdir, radar_files).generate_workflow()
+    workflow = HailWorkflow(outdir, radar_files, container_sif=args.container_sif)
+    workflow.create_pegasus_properties(hosted_site_catalog=args.hosted_site_catalog)
+    workflow.create_transformation_catalog(exec_site_name=args.execution_site_name)
+    workflow.create_replica_catalog()
+    workflow.create_workflow()
+    workflow.write()
+
+    print(f"Workflow written to {workflow.dagfile}")
+    # --output-dir: no site catalog defines "local", so Pegasus's built-in
+    # local site would otherwise stage outputs to ./wf-output.
+    print(
+        f"Plan and submit: pegasus-plan --conf {workflow.propsfile} "
+        f"--dir {os.path.join(outdir, 'submit')} "
+        f"-s {args.execution_site_name} -o local "
+        f"--output-dir {workflow.local_storage_dir} --submit {workflow.dagfile}"
+    )
+
+
+if __name__ == "__main__":
+    main()

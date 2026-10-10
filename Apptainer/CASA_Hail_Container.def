@@ -1,0 +1,15 @@
+# Apptainer image for the CASA Hail workflow.
+#
+# The tools ship prebuilt in the published Docker image; this definition
+# converts it to a local .sif that Pegasus stages to the workers
+# (image_site="local"), so jobs need no registry access. `Bootstrap: docker`
+# pulls the image directly — no Docker installation is required.
+#
+# Build (Linux, x86_64; Apptainer cannot build on macOS):
+#   apptainer build Apptainer/CASA_Hail_Container.sif Apptainer/CASA_Hail_Container.def
+
+Bootstrap: docker
+From: casaelyons/single_hail_container
+
+%labels
+    description CASA Hail workflow tools (from docker://casaelyons/single_hail_container)
